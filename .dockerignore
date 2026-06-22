@@ -1,0 +1,10 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+
+output
+uploads
+
+.ipynb_checkpoints
+.env
