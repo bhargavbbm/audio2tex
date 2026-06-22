@@ -6,6 +6,10 @@ from backend.physics_parser import physics_to_latex
 
 MODEL_NAME = "base"
 
+print(f"Loading Whisper model: {MODEL_NAME}")
+MODEL = whisper.load_model(MODEL_NAME)
+print("Whisper model loaded.")
+
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR.parent / "output"
 
@@ -18,13 +22,9 @@ PDF_FILE = OUTPUT_DIR / "lecture.pdf"
 
 def audio_to_latex(audio_file):
 
-    print(f"Loading Whisper model: {MODEL_NAME}")
-
-    model = whisper.load_model(MODEL_NAME)
-
     print(f"Transcribing: {audio_file}")
 
-    result = model.transcribe(audio_file)
+    result = MODEL.transcribe(audio_file)
 
     transcript = result["text"]
 
@@ -58,17 +58,32 @@ def audio_to_latex(audio_file):
 \end{document}
 """)
 
-    subprocess.run(
-        [
-            "pdflatex",
-            "-interaction=nonstopmode",
-            "-output-directory",
-            str(OUTPUT_DIR),
-            str(LATEX_FILE)
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    )
+    try:
+
+        subprocess.run(
+            [
+                "pdflatex",
+                "-interaction=nonstopmode",
+                "-output-directory",
+                str(OUTPUT_DIR),
+                str(LATEX_FILE)
+            ],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        print("PDF generated successfully.")
+
+    except FileNotFoundError:
+
+        print("WARNING: pdflatex not found. Skipping PDF generation.")
+
+    except subprocess.CalledProcessError as e:
+
+        print("WARNING: PDF generation failed.")
+        print(e.stderr)
 
     cleanup_extensions = [
         ".aux",
