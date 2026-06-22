@@ -2,7 +2,7 @@ import whisper
 import subprocess
 from pathlib import Path
 
-from physics_parser import physics_to_latex
+from backend.physics_parser import physics_to_latex
 
 MODEL_NAME = "large"
 

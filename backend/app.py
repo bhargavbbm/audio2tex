@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 
 from fastapi.middleware.cors import CORSMiddleware
 
-from lecture2tex import audio_to_latex
+from backend.lecture2tex import audio_to_latex
 
 app = FastAPI(
     title="Audio2TeX",
