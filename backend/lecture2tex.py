@@ -4,7 +4,7 @@ from pathlib import Path
 
 from backend.physics_parser import physics_to_latex
 
-MODEL_NAME = "base"
+MODEL_NAME = "large"
 
 print(f"Loading Whisper model: {MODEL_NAME}")
 MODEL = whisper.load_model(MODEL_NAME)
