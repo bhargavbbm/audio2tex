@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Audio2TeX</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Audio2TeX</h1>
+    <p class="subtitle">
+        Convert Physics Lectures into LaTeX Notes
+    </p>
+
+    <div id="drop-zone">
+        <p>Drag & Drop Audio Here</p>
+        <p>or</p>
+
+        <input
+            type="file"
+            id="audioFile"
+            accept=".mp3,.wav,.m4a"
+        >
+    </div>
+
+    <button onclick="uploadAudio()">
+        Convert Lecture
+    </button>
+
+    <div id="status"></div>
+
+    <div class="results">
+
+        <div class="panel">
+
+            <div class="panel-header">
+                <h2>Transcript</h2>
+            </div>
+
+            <pre id="transcript"></pre>
+
+        </div>
+
+        <div class="panel">
+
+            <div class="panel-header">
+
+                <h2>LaTeX Output</h2>
+
+                <button onclick="copyLatex()">
+                    Copy LaTeX
+                </button>
+
+            </div>
+
+            <pre id="latex"></pre>
+
+            <div class="download-buttons">
+
+                <button onclick="downloadTex()">
+                    Download TEX
+                </button>
+
+                <button onclick="downloadPdf()">
+                    Download PDF
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
