@@ -4,7 +4,7 @@ from pathlib import Path
 
 from backend.physics_parser import physics_to_latex
 
-MODEL_NAME = "large"
+MODEL_NAME = "base"
 
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR.parent / "output"
