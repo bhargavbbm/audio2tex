@@ -50,7 +50,7 @@ async function uploadAudio() {
 
     const response =
         await fetch(
-            "http://127.0.0.1:8000/convert",
+            "https://audio2tex.onrender.com/convert",
             {
                 method: "POST",
                 body: formData
