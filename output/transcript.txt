@@ -1,1 +1,0 @@
- The Hamiltonian is h equals p squared over 2m plus v of x. The force is minus dv by dx. The wave function psi satisfies the Schrodinger's equation. And the electric field is q over 4 pi epsilon naught r squared.

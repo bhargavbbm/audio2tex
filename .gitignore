@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+
+# Generated output
+output/
+
+# Uploaded files
+backend/uploads/
+
+# LaTeX temp files
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
