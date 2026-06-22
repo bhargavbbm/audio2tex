@@ -50,7 +50,7 @@ async function uploadAudio() {
 
     const response =
         await fetch(
-            "https://bhargavbbm-audio2tex.hf.space",
+            "https://bhargavbbm-audio2tex.hf.space/convert",
             {
                 method: "POST",
                 body: formData
