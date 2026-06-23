@@ -1,12 +1,16 @@
-# ── Web framework ─────────────────────────────────────────────────────────────
+# ── Web framework ──────────────────────────────────────────────────────────
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
 python-multipart==0.0.9
 
-# ── Whisper (OpenAI) ──────────────────────────────────────────────────────────
+# ── Whisper (OpenAI) ────────────────────────────────────────────────────────
 openai-whisper==20231117
 
-# ── PyTorch — CPU-only build (much smaller, fine for HF free tier) ─────────────
+# ── Build tools & dependencies ──────────────────────────────────────────────
+setuptools>=65.5.0
+wheel>=0.38.0
+
+# ── PyTorch — CPU-only build (much smaller, fine for HF free tier) ─────────
 # HF Spaces usually pre-installs torch; this pin avoids re-downloading.
 # If your Space has GPU, remove the --index-url line and just keep torch.
 torch==2.2.2
