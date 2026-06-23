@@ -3,9 +3,7 @@ title: Audio2Tex
 emoji: 🎤
 colorFrom: blue
 colorTo: purple
-sdk: gradio
-sdk_version: "5.0.0"
-app_file: app.py
+sdk: docker
 pinned: false
 ---
 # Audio2TeX
