@@ -32,39 +32,40 @@ CLEANUP_EXTS = {".aux", ".log", ".out", ".toc", ".fls", ".fdb_latexmk", ".syncte
 
 # ── LaTeX document template ───────────────────────────────────────────────────
 LATEX_TEMPLATE = r"""\documentclass[12pt]{{article}}
+\documentclass[12pt]{article}
+\usepackage{fullpage}
+\usepackage{physics}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, calc}
+\usetikzlibrary{decorations.markings}
+\usepackage{placeins}
+\usepackage[a4paper,left=1in,right=1in,bottom=1in,top=1.2in,headsep=0.3in]{geometry} % Set A4 paper size and margins
+\usepackage{makecell} % For multi-line headers
+\usepackage{setspace}
+\usepackage{bm}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[hidelinks]{hyperref}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage[justification=centering]{caption}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\setlength{\headheight}{14.49998pt}
+\pagestyle{fancy}
+\fancyhf{}
 
-% ── Encoding & fonts ──────────────────────────────────────────────────────────
-\usepackage[utf8]{{inputenc}}
-\usepackage[T1]{{fontenc}}
-\usepackage{{lmodern}}
+\fancyhead[L]{Transcribed}
+\fancyhead[R]{\thepage\hspace{0.1in}}
 
-% ── Math ──────────────────────────────────────────────────────────────────────
-\usepackage{{amsmath}}
-\usepackage{{amssymb}}
-\usepackage{{amsthm}}
-\usepackage{{mathtools}}
-
-% ── Layout ────────────────────────────────────────────────────────────────────
-\usepackage[a4paper, margin=2.5cm]{{geometry}}
-\usepackage{{parskip}}
-\usepackage{{microtype}}
-
-% ── Links ─────────────────────────────────────────────────────────────────────
-\usepackage[hidelinks]{{hyperref}}
-
-% ── Theorem environments ───────────────────────────────────────────────────────
-\newtheorem{{theorem}}{{Theorem}}[section]
-\newtheorem{{lemma}}[theorem]{{Lemma}}
-\newtheorem{{proposition}}[theorem]{{Proposition}}
-\newtheorem{{corollary}}[theorem]{{Corollary}}
-\newtheorem{{definition}}[theorem]{{Definition}}
-\newtheorem{{example}}[theorem]{{Example}}
-\newtheorem{{remark}}[theorem]{{Remark}}
-
-\title{{Lecture Notes}}
+\renewcommand{\headrulewidth}{0.4pt}
+\title{{Transcribed}}
 \author{{Audio2TeX}}
 \date{{\today}}
-
 \begin{{document}}
 
 \maketitle
