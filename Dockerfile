@@ -5,9 +5,13 @@ RUN apt-get update && apt-get install -y \
     texlive-latex-base \
     texlive-latex-recommended \
     texlive-latex-extra \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Upgrade pip and install build tools first
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 COPY . .
 
