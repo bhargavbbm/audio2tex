@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Upgrade pip and install build tools first
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 COPY . .
