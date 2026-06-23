@@ -19,7 +19,7 @@ from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.lecture2tex import audio_to_latex
+from backend.lecture2tex import physics_to_latex
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="Audio2TeX", version="3.0")
@@ -54,7 +54,7 @@ def run_job(job_id: str, audio_path: str):
     JOBS[job_id]["progress"] = "Transcribing audio with Whisper large-v3…"
 
     try:
-        result = audio_to_latex(audio_path, job_id=job_id, jobs=JOBS)
+        result = physics_to_latex(audio_path, job_id=job_id, jobs=JOBS)
 
         # Embed PDF as base64 in the result so the client can download it
         pdf_b64: Optional[str] = None
