@@ -32,7 +32,6 @@ CLEANUP_EXTS = {".aux", ".log", ".out", ".toc", ".fls", ".fdb_latexmk", ".syncte
 
 # ── LaTeX document template ───────────────────────────────────────────────────
 LATEX_TEMPLATE = r"""\documentclass[12pt]{{article}}
-\documentclass[12pt]{article}
 \usepackage{fullpage}
 \usepackage{physics}
 \usepackage{graphicx}
