@@ -1,3 +1,13 @@
+---
+title: Audio2Tex
+emoji: 🎤
+colorFrom: blue
+colorTo: purple
+sdk: gradio
+sdk_version: "5.0.0"
+app_file: app.py
+pinned: false
+---
 # Audio2TeX
 
 Convert physics lecture audio → LaTeX notes using **Whisper large-v3**.
