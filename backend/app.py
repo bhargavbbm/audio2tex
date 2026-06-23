@@ -19,9 +19,9 @@ from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.lecture2tex import physics_to_latex
+from backend.lecture2tex import audio_to_latex
 
-# ── App setup ─────────────────────────────────────────────────────────────────
+# ── App setup ───────────────────────────────────────────────────────────[...]
 app = FastAPI(title="Audio2TeX", version="3.0")
 
 app.add_middleware(
@@ -33,7 +33,7 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# ── Paths ────────────────────────────────────────────────────────────–[...]
 BASE_DIR   = Path(__file__).resolve().parent.parent   # project root
 UPLOAD_DIR = BASE_DIR / "uploads"
 OUTPUT_DIR = BASE_DIR / "output"
@@ -48,13 +48,13 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 JOBS: dict[str, dict] = {}
 
 
-# ── Background worker ─────────────────────────────────────────────────────────
+# ── Background worker ────────────────────────────────────────────────────────–[...]
 def run_job(job_id: str, audio_path: str):
     JOBS[job_id]["status"] = "processing"
     JOBS[job_id]["progress"] = "Transcribing audio with Whisper large-v3…"
 
     try:
-        result = physics_to_latex(audio_path, job_id=job_id, jobs=JOBS)
+        result = audio_to_latex(audio_path, job_id=job_id, jobs=JOBS)
 
         # Embed PDF as base64 in the result so the client can download it
         pdf_b64: Optional[str] = None
@@ -79,7 +79,7 @@ def run_job(job_id: str, audio_path: str):
         print(f"[Job {job_id}] ERROR: {exc}")
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+# ── Endpoints ───────────────────────────────────────────────────────────[...]
 @app.get("/")
 def root():
     return {"project": "Audio2TeX", "status": "running", "version": "3.0"}
