@@ -51,7 +51,7 @@ LATEX_TEMPLATE = r"""\documentclass[12pt]{{article}}
 \author{{Audio2TeX}}
 \date{{\today}}
 
-\begn{{document}}
+\begin{{document}}
 \newpage
 
 {body}
