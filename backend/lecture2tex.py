@@ -43,7 +43,7 @@ LATEX_TEMPLATE = r"""\documentclass[12pt]{{article}}
 \usepackage{{fancyhdr}}
 
 \pagestyle{{fancy}}
-\fancyhf{}
+\fancyhf{{}}
 \fancyhead[L]{{Transcribed}}
 \fancyhead[R]{{\thepage}}
 
