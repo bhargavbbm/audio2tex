@@ -1,0 +1,5 @@
+ffmpeg
+texlive-latex-extra
+texlive-fonts-recommended
+texlive-science
+lmodern

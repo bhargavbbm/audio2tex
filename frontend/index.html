@@ -1,82 +1,79 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Audio2TeX</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio2TeX — Physics Lecture to LaTeX</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
 
-    <h1>Audio2TeX</h1>
-    <p class="subtitle">
-        Convert Physics Lectures into LaTeX Notes
-    </p>
+    <header>
+        <h1>Audio2TeX</h1>
+        <p class="subtitle">Convert physics lectures into LaTeX notes — powered by Whisper large-v3</p>
+    </header>
 
-    <div id="drop-zone">
-        <p>Drag & Drop Audio Here</p>
-        <p>or</p>
+    <!-- ── Upload card ── -->
+    <div class="card">
+        <div id="drop-zone">
+            <div class="drop-icon">🎙️</div>
+            <p class="drop-title">Drag &amp; drop your audio here</p>
+            <p class="drop-sub">MP3, WAV, M4A, OGG, FLAC · any length</p>
+            <label class="choose-btn" for="audioFile">Choose file</label>
+            <input type="file" id="audioFile" accept=".mp3,.wav,.m4a,.ogg,.flac,.webm" hidden>
+            <p id="file-label" class="file-label">No file selected</p>
+        </div>
 
-        <input
-            type="file"
-            id="audioFile"
-            accept=".mp3,.wav,.m4a"
-        >
+        <button class="convert-btn" id="convertBtn" onclick="startConversion()">
+            Convert Lecture
+        </button>
     </div>
 
-    <button onclick="uploadAudio()">
-        Convert Lecture
-    </button>
+    <!-- ── Progress card (hidden until job starts) ── -->
+    <div class="card" id="progress-card" hidden>
+        <div class="progress-header">
+            <span id="progress-icon">⏳</span>
+            <span id="progress-text">Initialising…</span>
+        </div>
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progress-bar"></div>
+        </div>
+    </div>
 
-    <div id="status"></div>
-
-    <div class="results">
+    <!-- ── Results ── -->
+    <div class="results" id="results-section" hidden>
 
         <div class="panel">
-
             <div class="panel-header">
                 <h2>Transcript</h2>
+                <button class="small-btn" onclick="copyText('transcript')">Copy</button>
             </div>
-
-            <pre id="transcript"></pre>
-
+            <pre id="transcript" class="output-box">Transcript will appear here.</pre>
         </div>
 
         <div class="panel">
-
             <div class="panel-header">
-
-                <h2>LaTeX Output</h2>
-
-                <button onclick="copyLatex()">
-                    Copy LaTeX
-                </button>
-
+                <h2>Full LaTeX Source</h2>
+                <button class="small-btn" onclick="copyText('latex-output')">Copy</button>
             </div>
+            <pre id="latex-output" class="output-box">LaTeX will appear here.</pre>
 
-            <pre id="latex"></pre>
-
-            <div class="download-buttons">
-
-                <button onclick="downloadTex()">
-                    Download TEX
-                </button>
-
-                <button onclick="downloadPdf()">
-                    Download PDF
-                </button>
-
+            <div class="download-row">
+                <button class="dl-btn" id="btn-tex"  onclick="downloadTex()">⬇ Download .tex</button>
+                <button class="dl-btn" id="btn-pdf"  onclick="downloadPdf()">⬇ Download PDF</button>
             </div>
-
+            <p id="pdf-note" class="pdf-note" hidden></p>
         </div>
 
     </div>
 
 </div>
 
-<script src="app.js"></script>
+<!-- Toast -->
+<div id="toast" class="toast"></div>
 
+<script src="app.js"></script>
 </body>
 </html>
