@@ -31,32 +31,32 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 CLEANUP_EXTS = {".aux", ".log", ".out", ".toc", ".fls", ".fdb_latexmk", ".synctex.gz"}
 
 # ── LaTeX document template ───────────────────────────────────────────────────
-LATEX_TEMPLATE = r"""\documentclass[12pt]{article}
+LATEX_TEMPLATE = r"""\documentclass[12pt]{{article}}
 
-\usepackage[a4paper,left=1in,right=1in,bottom=1in,top=1.2in]{geometry}
+\usepackage[a4paper,left=1in,right=1in,bottom=1in,top=1.2in]{{geometry}}
 
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage[hidelinks]{hyperref}
-\usepackage{parskip}
-\usepackage{enumitem}
-\usepackage{fancyhdr}
+\usepackage{{amsmath}}
+\usepackage{{amssymb}}
+\usepackage[hidelinks]{{hyperref}}
+\usepackage{{parskip}}
+\usepackage{{enumitem}}
+\usepackage{{fancyhdr}}
 
-\pagestyle{fancy}
+\pagestyle{{fancy}}
 \fancyhf{}
-\fancyhead[L]{Transcribed}
-\fancyhead[R]{\thepage}
+\fancyhead[L]{{Transcribed}}
+\fancyhead[R]{{\thepage}}
 
-\title{Transcribed}
-\author{Audio2TeX}
-\date{\today}
+\title{{Transcribed}}
+\author{{Audio2TeX}}
+\date{{\today}}
 
-\begun{document}
+\begn{{document}}
 \newpage
 
 {body}
 
-\end{document}
+\end{{document}}
 """
 
 
