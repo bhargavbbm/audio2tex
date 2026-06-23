@@ -1,14 +1,14 @@
+# ── Build tools & dependencies ──────────────────────────────────────────────
+setuptools>=65.5.0
+wheel>=0.38.0
+
 # ── Web framework ──────────────────────────────────────────────────────────
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
 python-multipart==0.0.9
 
 # ── Whisper (OpenAI) ────────────────────────────────────────────────────────
-openai-whisper==20231117
-
-# ── Build tools & dependencies ──────────────────────────────────────────────
-setuptools>=65.5.0
-wheel>=0.38.0
+openai-whisper
 
 # ── PyTorch — CPU-only build (much smaller, fine for HF free tier) ─────────
 # HF Spaces usually pre-installs torch; this pin avoids re-downloading.
