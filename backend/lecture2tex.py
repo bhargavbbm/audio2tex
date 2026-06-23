@@ -31,49 +31,32 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 CLEANUP_EXTS = {".aux", ".log", ".out", ".toc", ".fls", ".fdb_latexmk", ".synctex.gz"}
 
 # ── LaTeX document template ───────────────────────────────────────────────────
-LATEX_TEMPLATE = r"""\documentclass[12pt]{{article}}
-\usepackage{fullpage}
-\usepackage{physics}
-\usepackage{graphicx}
-\usepackage{wrapfig}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta, calc}
-\usetikzlibrary{decorations.markings}
-\usepackage{placeins}
-\usepackage[a4paper,left=1in,right=1in,bottom=1in,top=1.2in,headsep=0.3in]{geometry} % Set A4 paper size and margins
-\usepackage{makecell} % For multi-line headers
-\usepackage{setspace}
-\usepackage{bm}
-\usepackage{float}
+LATEX_TEMPLATE = r"""\documentclass[12pt]{article}
+
+\usepackage[a4paper,left=1in,right=1in,bottom=1in,top=1.2in]{geometry}
+
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage[hidelinks]{hyperref}
-\usepackage{multirow}
-\usepackage{subcaption}
-\usepackage[justification=centering]{caption}
 \usepackage{parskip}
 \usepackage{enumitem}
 \usepackage{fancyhdr}
-\setlength{\headheight}{14.49998pt}
+
 \pagestyle{fancy}
 \fancyhf{}
-
 \fancyhead[L]{Transcribed}
-\fancyhead[R]{\thepage\hspace{0.1in}}
+\fancyhead[R]{\thepage}
 
-\renewcommand{\headrulewidth}{0.4pt}
-\title{{Transcribed}}
-\author{{Audio2TeX}}
-\date{{\today}}
-\begin{{document}}
+\title{Transcribed}
+\author{Audio2TeX}
+\date{\today}
 
-\maketitle
-\tableofcontents
+\begun{document}
 \newpage
 
 {body}
 
-\end{{document}}
+\end{document}
 """
 
 
