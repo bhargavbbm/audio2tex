@@ -1,6 +1,6 @@
 samples/
-output/
-__pycache__/# Python
+
+# Python
 __pycache__/
 *.pyc
 
@@ -8,10 +8,12 @@ __pycache__/
 venv/
 .venv/
 
-# Generated output
+# Generated output (transcripts, chunks, .tex, .pdf per job)
 output/
 
-# Uploaded files
+# Uploaded audio files — this is the actual upload path used by
+# backend/app.py (project-root uploads/, NOT backend/uploads/).
+uploads/
 backend/uploads/
 
 # LaTeX temp files
@@ -22,6 +24,12 @@ backend/uploads/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+
+# Whisper model cache (large; re-downloaded automatically, no need to commit)
+.cache/whisper/
+
+# Secrets — never commit real API keys
+.env
 
 # VS Code
 .vscode/
