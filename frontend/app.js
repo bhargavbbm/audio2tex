@@ -14,7 +14,12 @@ let currentLatex   = "";
 let currentPdfB64  = null;
 let pollTimer      = null;
 let pollAttempts   = 0;
-const MAX_POLLS    = 200;   // 200 × 3 s = 10 minutes max wait
+/* No hard cap on poll attempts — a 2-hour lecture can legitimately take a
+   long time to process, and the backend job runs independently of this
+   browser tab. We just poll until the server reports "done" or "error". */
+const POLL_INTERVAL_MS   = 3000;
+const REASSURANCE_AFTER  = 200;   // ~10 min: start showing "still working" context
+const LOCAL_STORAGE_KEY  = "audio2tex_active_job_id";
 
 /* ── Progress bar steps ──────────────────────────────────────────────────────
    We fake smooth progress because the real work is opaque to the browser.
@@ -113,20 +118,23 @@ async function startConversion() {
     }
 
     currentJobId = jobId;
+    localStorage.setItem(LOCAL_STORAGE_KEY, jobId);
     setProgress("transcribing", 15);
 
-    /* 3. Poll /status/{job_id} */
-    pollTimer = setInterval(() => pollStatus(jobId), 3000);
+    /* 3. Poll /status/{job_id} — keep going until done/error, no time cap.
+       The job runs on the server independently of this tab, so even if the
+       browser is closed and reopened, resuming polling picks up right
+       where the job actually is. */
+    pollTimer = setInterval(() => pollStatus(jobId), POLL_INTERVAL_MS);
 }
 
-/* ── Polling ─────────────────────────────────────────────────────────────────  */
+/* ── Polling ─────────────────────────────────────────────────────────────────
+   No MAX_POLLS cutoff: a legitimate 2-hour lecture can take well over
+   10 minutes to transcribe + convert + compile, and the backend job keeps
+   running in the background regardless of what the browser does. We only
+   stop polling when the server tells us the job is "done" or "error".    */
 async function pollStatus(jobId) {
     pollAttempts++;
-    if (pollAttempts > MAX_POLLS) {
-        clearInterval(pollTimer);
-        showError("Timed out after 10 minutes. Try a shorter audio clip.");
-        return;
-    }
 
     let data;
     try {
@@ -137,25 +145,63 @@ async function pollStatus(jobId) {
         return;   // network hiccup — keep polling
     }
 
-    /* Update progress label from server message */
+    /* Update progress label from server message. Prefer the server's own
+       progress text (which now includes real chunk counts / percentages
+       for long audio) and fall back to a smooth estimate. */
     const progress = data.progress || "";
-    if (progress.toLowerCase().includes("transcri")) {
-        setProgress("transcribing", Math.min(15 + pollAttempts * 0.8, 75));
-    } else if (progress.toLowerCase().includes("convert")) {
+    const pctMatch = progress.match(/Progress:\s*(\d+)%/i);
+
+    if (pctMatch) {
+        setProgress("transcribing", Math.min(5 + Number(pctMatch[1]) * 0.7, 75));
+        document.getElementById("progress-text").textContent = progress;
+    } else if (/convert|section/i.test(progress)) {
         setProgress("converting", 80);
-    } else if (progress.toLowerCase().includes("pdflatex") || progress.toLowerCase().includes("compil")) {
+        document.getElementById("progress-text").textContent = progress;
+    } else if (/pdflatex|compil/i.test(progress)) {
         setProgress("compiling", 90);
+        document.getElementById("progress-text").textContent = progress;
+    } else if (/transcri|chunk|duration|preparing/i.test(progress)) {
+        setProgress("transcribing", Math.min(15 + pollAttempts * 0.4, 75));
+        document.getElementById("progress-text").textContent = progress;
+    }
+
+    if (pollAttempts === REASSURANCE_AFTER) {
+        showToast("Still working — long lectures can take a while. This tab doesn't need to stay open.");
     }
 
     if (data.status === "done") {
         clearInterval(pollTimer);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
         onComplete(data.result);
 
     } else if (data.status === "error") {
         clearInterval(pollTimer);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
         showError(data.error || "An unknown error occurred on the server.");
     }
 }
+
+/* ── Resume polling after a page refresh / reopen ────────────────────────────
+   If a job was in flight when the page was last closed/refreshed, pick up
+   polling automatically instead of losing track of a long-running job.    */
+function resumeActiveJobIfAny() {
+    const jobId = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!jobId) return;
+
+    currentJobId = jobId;
+    pollAttempts = 0;
+
+    document.getElementById("results-section").hidden = true;
+    document.getElementById("progress-card").hidden   = false;
+    document.getElementById("convertBtn").disabled     = true;
+    setProgress("transcribing", 15);
+    document.getElementById("progress-text").textContent = "Reconnecting to your in-progress job…";
+
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(() => pollStatus(jobId), POLL_INTERVAL_MS);
+}
+
+window.addEventListener("DOMContentLoaded", resumeActiveJobIfAny);
 
 /* ── Job complete ────────────────────────────────────────────────────────────  */
 function onComplete(result) {

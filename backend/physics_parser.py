@@ -15,6 +15,18 @@ Stage 2 — Claude API pass (optional but recommended):
     This handles complex spoken math that regex can't reliably catch.
     Falls back to regex-only output if the API call fails.
 
+Long transcripts: section-chunked conversion
+---------------------------------------------
+A 2-hour lecture transcript is far too large to send to the LLM in one
+request. `physics_to_latex` splits the transcript into logical sections
+(grouped paragraphs under a character budget) and converts them one at a
+time, carrying forward only a short "tail" of the previous section's
+finalized LaTeX as context — enough to keep notation (e.g. a symbol the
+lecturer defined earlier) consistent across sections without ever sending
+the whole transcript to the LLM at once. Each section's result is cached
+to disk (output/<job_id>/sections/NNN.tex) so a crashed/interrupted job
+can resume without re-converting sections that already succeeded.
+
 Environment variable:
     ANTHROPIC_API_KEY — set this in your HF Space secrets for Stage 2 to work.
 """
@@ -22,8 +34,20 @@ Environment variable:
 import os
 import re
 import json
+from pathlib import Path
+from typing import Optional
 from urllib import request as urllib_request
 from urllib.error import URLError
+
+BASE_DIR   = Path(__file__).resolve().parent.parent
+OUTPUT_DIR = BASE_DIR / "output"
+
+# Character budget per section sent to the LLM. Keeps each request small
+# and fast instead of sending an hour of transcript at once.
+SECTION_MAX_CHARS = 3500
+# How much of the previous section's finalized LaTeX is carried forward as
+# notation-continuity context for the next section.
+CONTEXT_TAIL_CHARS = 400
 
 # ── Stage 1: Regex replacement table ─────────────────────────────────────────
 # Order is critical: longer/more-specific patterns first.
@@ -93,30 +117,38 @@ _REPLACEMENTS: list[tuple[str, str]] = [
     (r"\bintersection\b",               r"$\\cap$"),
 
     # ── Greek letters (word-boundary to avoid replacing inside other words) ───
-    (r"\bAlpha\b",       r"$A$"),          # uppercase Greek = Roman in LaTeX
-    (r"\bBeta\b",        r"$B$"),
-    (r"\bGamma\b",       r"$\\Gamma$"),
-    (r"\bDelta\b",       r"$\\Delta$"),
-    (r"\bEpsilon\b",     r"$E$"),
-    (r"\bZeta\b",        r"$Z$"),
-    (r"\bEta\b",         r"$H$"),
-    (r"\bTheta\b",       r"$\\Theta$"),
-    (r"\bIota\b",        r"$I$"),
-    (r"\bKappa\b",       r"$K$"),
-    (r"\bLambda\b",      r"$\\Lambda$"),
-    (r"\bMu\b",          r"$M$"),
-    (r"\bNu\b",          r"$N$"),
-    (r"\bXi\b",          r"$\\Xi$"),
-    (r"\bOmicron\b",     r"$O$"),
-    (r"\bPi\b",          r"$\\Pi$"),
-    (r"\bRho\b",         r"$P$"),
-    (r"\bSigma\b",       r"$\\Sigma$"),
-    (r"\bTau\b",         r"$T$"),
-    (r"\bUpsilon\b",     r"$\\Upsilon$"),
-    (r"\bPhi\b",         r"$\\Phi$"),
-    (r"\bChi\b",         r"$X$"),
-    (r"\bPsi\b",         r"$\\Psi$"),
-    (r"\bOmega\b",       r"$\\Omega$"),
+    # NOTE: the whole replacement table is compiled/matched case-INSENSITIVE
+    # (see _COMPILED / _ALT_PATTERN below) so that e.g. a sentence-initial
+    # "Integral of..." still matches "\bintegral\b". But for the uppercase
+    # Greek-letter names specifically, case is the ONLY signal we have for
+    # telling "the lecturer means the capital-letter form" (e.g. "the Gamma
+    # function") apart from "gamma" simply appearing at the start of a
+    # sentence. So these patterns opt OUT of case-insensitivity with the
+    # inline (?-i:...) scoped flag, requiring an exact capitalized match.
+    (r"\b(?-i:Alpha)\b",       r"$A$"),          # uppercase Greek = Roman in LaTeX
+    (r"\b(?-i:Beta)\b",        r"$B$"),
+    (r"\b(?-i:Gamma)\b",       r"$\\Gamma$"),
+    (r"\b(?-i:Delta)\b",       r"$\\Delta$"),
+    (r"\b(?-i:Epsilon)\b",     r"$E$"),
+    (r"\b(?-i:Zeta)\b",        r"$Z$"),
+    (r"\b(?-i:Eta)\b",         r"$H$"),
+    (r"\b(?-i:Theta)\b",       r"$\\Theta$"),
+    (r"\b(?-i:Iota)\b",        r"$I$"),
+    (r"\b(?-i:Kappa)\b",       r"$K$"),
+    (r"\b(?-i:Lambda)\b",      r"$\\Lambda$"),
+    (r"\b(?-i:Mu)\b",          r"$M$"),
+    (r"\b(?-i:Nu)\b",          r"$N$"),
+    (r"\b(?-i:Xi)\b",          r"$\\Xi$"),
+    (r"\b(?-i:Omicron)\b",     r"$O$"),
+    (r"\b(?-i:Pi)\b",          r"$\\Pi$"),
+    (r"\b(?-i:Rho)\b",         r"$P$"),
+    (r"\b(?-i:Sigma)\b",       r"$\\Sigma$"),
+    (r"\b(?-i:Tau)\b",         r"$T$"),
+    (r"\b(?-i:Upsilon)\b",     r"$\\Upsilon$"),
+    (r"\b(?-i:Phi)\b",         r"$\\Phi$"),
+    (r"\b(?-i:Chi)\b",         r"$X$"),
+    (r"\b(?-i:Psi)\b",         r"$\\Psi$"),
+    (r"\b(?-i:Omega)\b",       r"$\\Omega$"),
 
     (r"\balpha\b",       r"$\\alpha$"),
     (r"\bbeta\b",        r"$\\beta$"),
@@ -192,6 +224,40 @@ _COMPILED = [
     for pat, repl in _REPLACEMENTS
 ]
 
+# ── Single-pass combined pattern ─────────────────────────────────────────────
+# IMPORTANT: applying each pattern in _COMPILED one after another with
+# separate .sub() calls (as earlier versions of this file did) is unsafe —
+# a later pattern can re-match text that an earlier pattern already
+# produced. Concretely: "gamma" is matched (case-insensitively) by the
+# *uppercase* "Gamma" -> "$\Gamma$" pattern first; the plain "gamma" ->
+# "$\gamma$" pattern then re-matches the word "Gamma" INSIDE that freshly
+# generated "$\Gamma$", corrupting it into "$\$\gamma$$". Since Greek
+# letters are extremely common in physics lectures, that bug would corrupt
+# a large fraction of real output.
+#
+# The fix: scan the original text exactly ONCE with one big alternation
+# (patterns tried in the same priority order as before), and for whichever
+# alternative matches at a given position, apply that pattern's own
+# replacement (including backreferences like \1) to just that matched
+# span. Already-substituted output is never rescanned.
+_ALT_PATTERN = re.compile(
+    "|".join(f"(?P<g{i}>{pat})" for i, (pat, _repl) in enumerate(_REPLACEMENTS)),
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _apply_single_match(match: "re.Match") -> str:
+    for i, (_pat, repl) in enumerate(_REPLACEMENTS):
+        span_text = match.group(f"g{i}")
+        if span_text is not None:
+            # Re-apply just this pattern's own (possibly backreferenced)
+            # replacement onto the exact substring that matched — this
+            # correctly resolves things like r"$^{\1}$" without ever
+            # touching text outside this single match.
+            return _COMPILED[i][0].sub(repl, span_text, count=1)
+    return match.group(0)  # pragma: no cover — should be unreachable
+
+
 _LATEX_ESCAPE = [
     # Escape bare special chars ONLY when not already preceded by backslash
     # and not inside a $…$ block that we've already generated.
@@ -207,9 +273,10 @@ _LATEX_ESCAPE = [
 
 # ── Stage 1: regex-based conversion ──────────────────────────────────────────
 def _regex_pass(text: str) -> str:
-    """Apply all regex substitutions to produce rough LaTeX body text."""
-    for pattern, replacement in _COMPILED:
-        text = pattern.sub(replacement, text)
+    """Apply all regex substitutions in a single pass over the original
+    text (see _ALT_PATTERN above for why this must not be done as
+    sequential .sub() calls)."""
+    text = _ALT_PATTERN.sub(_apply_single_match, text)
 
     # Escape dangerous LaTeX characters that aren't inside our generated $…$
     # Strategy: split on $…$, escape only the non-math parts.
@@ -256,6 +323,12 @@ You will receive text that has already been partially processed by a regex pass:
 - Greek letter names like alpha, beta, etc. may have been replaced with LaTeX math like $\\alpha$
 - Some spoken math may already be converted
 
+You may also receive a short excerpt of context from the immediately
+preceding section of the SAME lecture (already-finalized LaTeX). That
+context is provided ONLY so you keep notation consistent (e.g. if the
+lecturer defined \\gamma to mean something earlier, keep using \\gamma the
+same way) — never repeat, quote, or re-output that context in your answer.
+
 Your job is to:
 1. Fix any remaining spoken mathematics into proper LaTeX. For example:
    - "the energy is equal to m c squared" → "the energy is equal to $E = mc^2$"
@@ -273,15 +346,30 @@ Your job is to:
 10. Fix obvious transcription errors where context makes the correct word clear (e.g. "hammy Tonian" → "Hamiltonian")."""
 
 
-def _claude_pass(text: str) -> str:
+def _claude_pass(text: str, context: str = "") -> str:
     """
     Send regex-processed text to Claude claude-sonnet-4-6 for intelligent LaTeX conversion.
     Returns improved LaTeX body, or the original text if the API call fails.
+
+    `context`, if given, is a short excerpt of the previous section's
+    finalized LaTeX — passed along purely for notation continuity (see
+    _CLAUDE_SYSTEM), not for the model to repeat.
     """
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         print("[physics_parser] ANTHROPIC_API_KEY not set — skipping Claude pass.")
         return text
+
+    user_content = (
+        "Convert the following partially-processed physics lecture transcript "
+        "section into clean LaTeX body content:\n\n" + text
+    )
+    if context:
+        user_content = (
+            "Context from the immediately preceding section (already-finalized "
+            "LaTeX, for notation continuity only — do NOT repeat or re-output "
+            f"this):\n\"\"\"\n{context}\n\"\"\"\n\n" + user_content
+        )
 
     payload = json.dumps({
         "model": "claude-sonnet-4-6",
@@ -290,11 +378,7 @@ def _claude_pass(text: str) -> str:
         "messages": [
             {
                 "role": "user",
-                "content": (
-                    "Convert the following partially-processed physics lecture transcript "
-                    "into clean LaTeX body content:\n\n"
-                    + text
-                )
+                "content": user_content,
             }
         ]
     }).encode("utf-8")
@@ -333,20 +417,81 @@ def _claude_pass(text: str) -> str:
         return text
 
 
+def _group_into_sections(paragraphs: list[str], max_chars: int = SECTION_MAX_CHARS) -> list[str]:
+    """Group paragraphs into sections under a character budget, preserving order."""
+    sections: list[str] = []
+    current: list[str] = []
+    current_len = 0
+
+    for p in paragraphs:
+        if current and current_len + len(p) > max_chars:
+            sections.append("\n\n".join(current))
+            current, current_len = [], 0
+        current.append(p)
+        current_len += len(p)
+
+    if current:
+        sections.append("\n\n".join(current))
+
+    return sections or [""]
+
+
 # ── Public entry point ────────────────────────────────────────────────────────
-def physics_to_latex(transcript: str) -> str:
+def physics_to_latex(
+    transcript: str,
+    job_id: str = "local",
+    jobs: Optional[dict] = None,
+) -> str:
     """
-    Full two-stage conversion:
-        1. Regex substitutions (fast, deterministic)
-        2. Claude API cleanup (accurate, needs ANTHROPIC_API_KEY in env)
+    Full two-stage, section-chunked conversion:
+        1. Split the transcript into logical sections under a char budget.
+        2. Per section — regex substitutions (fast, deterministic), then a
+           Claude API cleanup pass carrying forward a short notation-context
+           tail from the previous section. Results are cached to disk so a
+           crashed/interrupted job can resume without re-converting sections
+           that already succeeded. If a section's Claude call fails, its
+           regex-only output is kept and the pipeline continues.
 
     Returns a valid LaTeX body (no preamble, no \\begin{document}).
     """
+    def update(msg: str):
+        print(f"[Job {job_id}] {msg}")
+        if jobs and job_id in jobs:
+            jobs[job_id]["progress"] = msg
+
     paragraphs = _split_paragraphs(transcript)
-    processed_paragraphs = [_regex_pass(p) for p in paragraphs]
-    regex_body = "\n\n".join(processed_paragraphs)
+    sections = _group_into_sections(paragraphs)
+    total = len(sections)
 
-    # Stage 2: Claude intelligent pass
-    final_body = _claude_pass(regex_body)
+    section_dir = OUTPUT_DIR / job_id / "sections"
+    section_dir.mkdir(parents=True, exist_ok=True)
 
-    return final_body
+    outputs: list[str] = []
+    prev_tail = ""
+
+    for i, section_text in enumerate(sections, start=1):
+        cache_file = section_dir / f"{i:03d}.tex"
+
+        if cache_file.exists():
+            try:
+                result = cache_file.read_text(encoding="utf-8")
+                update(f"Section {i}/{total} already converted — reusing cached LaTeX.")
+                outputs.append(result)
+                prev_tail = result[-CONTEXT_TAIL_CHARS:]
+                continue
+            except Exception:
+                pass  # corrupted cache — fall through and reconvert
+
+        update(f"Converting section {i}/{total} to LaTeX…")
+        regex_text = _regex_pass(section_text)
+        result = _claude_pass(regex_text, context=prev_tail)
+
+        try:
+            cache_file.write_text(result, encoding="utf-8")
+        except Exception:
+            pass  # caching is best-effort, never fatal
+
+        outputs.append(result)
+        prev_tail = result[-CONTEXT_TAIL_CHARS:]
+
+    return "\n\n".join(outputs)
